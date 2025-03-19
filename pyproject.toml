@@ -1,0 +1,104 @@
+[tool.poetry]
+name = "fomo"
+version = "0.1.0"
+description = ""
+authors = ["dqmis <dom.seputis@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12.dev0"
+torch = "^2.2.2"
+numpy = "^1.26.4"
+transformers = "4.38.2"
+pillow = "^10.3.0"
+torchvision = "^0.17.2"
+scikit-learn = "^1.4.2"
+datasets = "^2.19.0"
+evaluate = "^0.4.1"
+seqeval = "^1.2.2"
+scipy = "^1.13.0"
+matplotlib = "^3.8.4"
+openai-clip = "^1.0.1"
+ipykernel = "^6.29.4"
+gdown = "^5.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.12.1"
+isort = "^5.13.2"
+flake8 = "^6.1.0"
+pre-commit = "^3.7.0"
+flake8-pyproject = "^1.2.3"
+mypy = "^1.9.0"
+wandb = "^0.16.1"
+ipykernel = "^6.29.4"
+pandas-stubs = "^2.2.1.240316"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.flake8]
+exclude = ['.git', '__pycache__', '.venv', 'Instructions.py']
+max-line-length = 110
+max-doc-length = 110
+max-complexity = 18
+ignore = ['E731', 'E203']
+
+[tool.black]
+line-length = 110
+include = '/project$|\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.eggs
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | \.vscode
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+skip = ["conftest.py", ".git", "__pycache__", ".venv"]
+
+[tool.mypy]
+files = "fomo/**/*.py"
+warn_unused_configs = true
+disallow_any_generics = false
+disallow_subclassing_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = true
+warn_redundant_casts = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+  "torchvision.*",
+  "transformers.*",
+  "torch.*",
+  "numpy.*",
+  "PIL.*",
+  "wandb.*",
+  "sklearn.*",
+  "datasets.*",
+  "evaluate.*",
+  "tqdm.*",
+  "scipy.*",
+  "clip.*",
+]
+# Put dependencie's name here if mypy fails to import stubs
+ignore_missing_imports = true
