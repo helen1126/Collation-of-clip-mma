@@ -9,9 +9,19 @@ from torchvision.datasets.utils import verify_str_arg
 
 
 class Caltech101(_Caltech101):
+    """
+    自定义的 Caltech 101 数据集类，继承自 torchvision 的 Caltech101 类。
+    该类提供了对 Caltech 101 数据集的加载和处理功能，支持自定义分割和目标类型。
+    """
     _SPLIT_URL = "https://drive.usercontent.google.com/download?id=1hyarUivQE36mY6jSomru6Fjd-JzwcCzN&export=download&authuser=0"
 
     def _download_split(self) -> dict[str, list[int]]:
+        """
+        从指定的 URL 下载数据集的分割信息。
+
+        返回:
+            dict[str, list[int]]: 包含训练集和测试集分割信息的字典。
+        """
         resp = requests.get(self._SPLIT_URL)
         return json.loads(resp.text)
 
@@ -24,6 +34,17 @@ class Caltech101(_Caltech101):
         target_transform: Optional[Callable] = None,
         download: bool = False,
     ) -> None:
+        """
+        初始化 Caltech 101 数据集实例。
+
+        参数:
+            root (str): 数据集存储的根目录。
+            split (str): 数据集的分割方式，可选值为 "train" 或 "test"，默认为 "train"。
+            target_type (Union[list[str], str]): 目标类型，可选值为 "category" 或 "annotation"，默认为 "category"。
+            transform (Optional[Callable]): 应用于图像数据的转换函数，默认为 None。
+            target_transform (Optional[Callable]): 应用于目标数据的转换函数，默认为 None。
+            download (bool): 是否下载数据集，默认为 False。
+        """
         super().__init__(
             root=root,
             transform=transform,
@@ -57,17 +78,24 @@ class Caltech101(_Caltech101):
         self.categories = [self._categories[label] for label in sorted(self._categories.keys())]
 
     def __len__(self) -> int:
+        """
+        获取数据集的长度，即数据样本的数量。
+
+        返回:
+            int: 数据集的长度。
+        """
         return len(self.data)
 
     def __getitem__(self, index: int) -> tuple[Any, Any]:
         """
-        Args:
-            index (int): Index
+        根据索引获取数据集中的一个样本。
 
-        Returns:
-            tuple: (image, target) where the type of target specified by target_type.
+        参数:
+            index (int): 样本的索引。
+
+        返回:
+            tuple[Any, Any]: 包含图像和目标的元组，目标的类型由 target_type 指定。
         """
-
         img = Image.open(
             os.path.join(
                 self.root,

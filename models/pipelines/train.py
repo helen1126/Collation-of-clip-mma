@@ -37,8 +37,15 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-
 def parse_args() -> argparse.Namespace:
+    """
+    解析命令行参数。
+
+    此函数创建一个命令行参数解析器，允许用户指定是否使用 wandb 进行日志记录，以及要使用的数据集名称。
+
+    返回:
+        argparse.Namespace: 包含解析后的命令行参数的命名空间对象。
+    """
     parser = argparse.ArgumentParser(description="Train model.")
     parser.add_argument(
         "--use_wandb",
@@ -55,17 +62,25 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
 class Learner:
-    """Trainer for prompt-learning using CLIP."""
+    """
+    使用 CLIP 进行提示学习的训练器。
+
+    该类封装了训练和评估模型的整个流程，包括数据加载、模型初始化、训练循环、评估和保存检查点等操作。
+    """
 
     def __init__(self, learner_args: LearnerArgs) -> None:
+        """
+        初始化 Learner 类的实例。
+
+        参数:
+            learner_args (LearnerArgs): 包含训练所需参数的对象。
+        """
         self._lr_args = learner_args
 
         set_seed(self._lr_args.seed)
         self.best_acc1 = 0.0
 
-        # Load clip image transformation
         self.model = intialize_model(
             self._lr_args.model_type, self._lr_args.model_backbone, self._lr_args.device
         )
@@ -99,7 +114,6 @@ class Learner:
 
         self._configure_trainable_params()
 
-        # Define criterion and optimizer
         self.optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.model.parameters()),
             lr=self._lr_args.learning_rate,
@@ -108,7 +122,6 @@ class Learner:
 
         self.scaler = GradScaler()
 
-        # Define scheduler
         self.scheduler = cosine_lr(
             self.optimizer,
             self._lr_args.learning_rate,
@@ -117,6 +130,12 @@ class Learner:
         )
 
     def _configure_trainable_params(self) -> None:
+        """
+        配置模型的可训练参数。
+
+        此方法将模型中除了指定的可学习参数外的所有参数的梯度设置为不可训练，
+        并打印出可训练的参数名称和可训练参数的数量。
+        """
         print("Turning off gradients in both the image and the text encoder")
         for name, param in self.model.named_parameters():
             param.requires_grad = False
@@ -124,21 +143,22 @@ class Learner:
                 if learnable_param_name in name:
                     param.requires_grad = True
 
-        # Double check
         enabled = set()
         for name, param in self.model.named_parameters():
             if param.requires_grad:
                 enabled.add(name)
 
         print(f"Parameters to be updated: {enabled}")
-
-        # Print number of parameters
         num_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print(f"Number of learnable paramms: {num_params}")
 
     def run(self) -> None:
-        """Runs training for the specified number of epochs."""
+        """
+        运行训练过程。
 
+        该方法会执行完整的训练流程，包括保存配置、初始化 wandb（如果需要）、
+        训练多个 epoch、评估模型、保存检查点以及最终在测试集上进行评估。
+        """
         self._lr_args.save_config()
 
         if self._lr_args.use_wandb:
@@ -150,11 +170,9 @@ class Learner:
             )
 
         if self._lr_args.evaluate_only:
-            # evaluate on test set
             self.evaluate("test_all")
             self.evaluate("test_base")
             self.evaluate("test_new")
-
             return
 
         epochs_since_improvement = 0
@@ -190,15 +208,25 @@ class Learner:
                     print("The training halted by early stopping criterion.")
                     break
 
-        # loading best model
         self.model.load_state_dict(torch.load(f"{self._lr_args.output_dir}/model_best.pth.tar")["state_dict"])
 
-        # evaluate on test set
         self.evaluate("test_all")
         self.evaluate("test_base")
         self.evaluate("test_new")
 
     def train_one_epoch(self, epoch: int) -> tuple[float, float]:
+        """
+        训练一个 epoch。
+
+        该方法用于在一个 epoch 内对模型进行训练，包括前向传播、反向传播、更新参数等操作，
+        并记录训练过程中的损失和准确率。
+
+        参数:
+            epoch (int): 当前的 epoch 编号。
+
+        返回:
+            tuple[float, float]: 一个元组，包含该 epoch 的平均损失和平均准确率。
+        """
         batch_time = AverageMeter("Time", ":6.3f")
         data_time = AverageMeter("Data", ":6.3f")
         losses = AverageMeter("Loss", ":.4e")
@@ -209,10 +237,8 @@ class Learner:
             prefix="Epoch: [{}]".format(epoch),
         )
 
-        # Switch to train mode
         self.model.train()
 
-        # precompute train prompt features
         self.model.precompute_prompt_features(
             build_label_prompts(self.train_labels, self._lr_args.text_prompt_template)
         )
@@ -221,10 +247,8 @@ class Learner:
 
         end = time.time()
         for i, (images, targets) in enumerate(tqdm(self.train_loader)):
-            # Measure data loading time
             data_time.update(time.time() - end)
 
-            # Adjust learning rate
             # step = num_batches_per_epoch * epoch + i
             # self.scheduler(step)
 
@@ -238,15 +262,12 @@ class Learner:
             loss.backward()
             self.optimizer.step()
 
-            # Note: we clamp to 4.6052 = ln(100), as in the original paper.
             self.model.logit_scale.data = torch.clamp(self.model.logit_scale.data, 0, 4.6052)
 
-            # Measure accuracy
             acc1 = accuracy(outputs, targets, topk=(1,))
             losses.update(loss.item(), images.size(0))
             top1.update(acc1[0].item(), images.size(0))
 
-            # Measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
 
@@ -267,7 +288,17 @@ class Learner:
         return losses.avg, top1.avg
 
     def evaluate(self, split: str = "valid") -> float:
-        """Evaluates the model on the given `split` set and returns average accuracy."""
+        """
+        在指定的数据集划分上评估模型。
+
+        该方法用于在验证集或测试集上评估模型的性能，并返回平均准确率。
+
+        参数:
+            split (str, 可选): 要评估的数据集划分，默认为 "valid"。
+
+        返回:
+            float: 评估的平均准确率。
+        """
         if split == "valid":
             loader = self.val_loader
         else:
@@ -276,7 +307,6 @@ class Learner:
                 self._lr_args.dataset, self.eval_transforms, self._lr_args, test_subsample
             )
 
-            # precompute train prompt features
             self.model.precompute_prompt_features(
                 build_label_prompts(test_labels, self._lr_args.text_prompt_template)
             )
@@ -291,7 +321,6 @@ class Learner:
             prefix="Validate: ",
         )
 
-        # Switch to evaluation mode
         self.model.eval()
 
         with torch.no_grad():
@@ -307,7 +336,6 @@ class Learner:
                 losses.update(loss.item(), images.size(0))
                 top1_prompt.update(acc1[0].item(), images.size(0))
 
-                # Measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
 

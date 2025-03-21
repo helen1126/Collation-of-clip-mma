@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
+    """
+    解析命令行参数，用于评估模型在指定数据集上的性能。
+
+    返回:
+        argparse.Namespace: 包含解析后命令行参数的命名空间对象，
+                            包含 'model'（模型名称）和 'datasets'（数据集名称列表）。
+    """
     parser = argparse.ArgumentParser(description="Evaluate a model on a dataset.")
     parser.add_argument(
         "--model",
@@ -38,11 +45,26 @@ class EvaluatePipeline:
     def __init__(
         self, model: BaseModel, dataset_initializers: list[DatasetInitializer], metrics: list[Metric]
     ) -> None:
+        """
+        初始化评估管道。
+
+        参数:
+            model (BaseModel): 要评估的模型。
+            dataset_initializers (list[DatasetInitializer]): 数据集初始化器列表，用于初始化要评估的数据集。
+            metrics (list[Metric]): 评估指标列表，用于评估模型性能。
+        """
         self._model = model
         self._dataset_initializers = dataset_initializers
         self._metrics = metrics
 
     def run(self) -> dict[str, dict[str, Any]]:
+        """
+        运行评估管道，对模型在指定数据集上进行评估。
+
+        返回:
+            dict[str, dict[str, Any]]: 包含每个数据集的评估结果的字典，
+                                       键为数据集名称，值为包含每个评估指标及其对应值的字典。
+        """
         results = {}
 
         for dataset_loader in self._dataset_initializers:
@@ -57,7 +79,6 @@ class EvaluatePipeline:
                 batch_size=self._model.batch_size,
                 shuffle=False,
             )
-
             self._model.reconfig_labels(labels)
 
             logger.info(f"Evaluating model on dataset {dataset.__class__.__name__}")
