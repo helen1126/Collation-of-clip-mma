@@ -6,24 +6,24 @@ NUM_OF_SAMPLES = 16
 
 def run_experiment(model_types, train_subsamples, datasets, prompts=None, num_samples=NUM_OF_SAMPLES):
     """
-    ����һϵ��ʵ�飬��Բ�ͬ��ģ�����͡�ѵ�������������ݼ���Ͻ���ѵ����
+    运行一系列实验，针对不同的模型类型、训练子样本和数据集组合进行训练。
 
-    �˺�����������п��ܵ�ģ�����͡�ѵ�������������ݼ�����ϣ�
-    ��ÿ����ϳ�ʼ�����ݼ�������ѧϰ��������ʹ�� Learner ������ѵ�����̡�
+    此函数会遍历所有可能的模型类型、训练子样本和数据集的组合，
+    对每个组合初始化数据集、设置学习参数，并使用 Learner 类运行训练过程。
 
-    ����:
-        model_types (list): ����Ҫʹ�õ�ģ�����͵��б������� ['model1', 'model2']��
-        train_subsamples (list): ����ѵ�����������͵��б������� ['base', 'full']��
-        datasets (list): ����Ҫʹ�õ����ݼ����Ƶ��б������� ['dataset1', 'dataset2']��
-        prompts (dict, ��ѡ): һ���ֵ䣬��Ϊ���ݼ����ƣ�ֵΪ��Ӧ����ʾģ�塣
-            ���δ�ṩ����ʹ��Ĭ�ϵ� PROMPTS��
-        num_samples (int, ��ѡ): ÿ����������������Ĭ��Ϊ NUM_OF_SAMPLES��
+    参数:
+        model_types (list): 包含要使用的模型类型的列表。例如 ['model1', 'model2']。
+        train_subsamples (list): 包含训练子样本类型的列表。例如 ['base', 'full']。
+        datasets (list): 包含要使用的数据集名称的列表。例如 ['dataset1', 'dataset2']。
+        prompts (dict, 可选): 一个字典，键为数据集名称，值为对应的提示模板。
+            如果未提供，则使用默认的 PROMPTS。
+        num_samples (int, 可选): 每个类别的样本数量，默认为 NUM_OF_SAMPLES。
 
-    ����:
-        ��
+    返回:
+        无
 
-    �쳣����:
-        �����ʵ�����й����г����κ��쳣���Ჶ����쳣����ӡ������Ϣ��
+    异常处理:
+        如果在实验运行过程中出现任何异常，会捕获该异常并打印错误信息。
     """
     if prompts is None:
         prompts = PROMPTS
