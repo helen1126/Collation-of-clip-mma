@@ -32,5 +32,5 @@ jobs:
       run: |
         pip install -r requirments.txt
         conda install pytest
-        pytest 
+        pytest scripts/run_experiment.py
         
